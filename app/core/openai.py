@@ -3,7 +3,7 @@
 
 import time
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import StreamingResponse, JSONResponse
 
@@ -28,7 +28,7 @@ def get_provider_router_instance():
     return provider_router
 
 
-def create_chunk(chat_id: str, model: str, delta: Dict[str, Any], finish_reason: str = None) -> Dict[str, Any]:
+def create_chunk(chat_id: str, model: str, delta: Dict[str, Any], finish_reason: Optional[str] = None) -> Dict[str, Any]:
     """创建标准的 OpenAI chunk 结构"""
     return {
         "choices": [{
@@ -130,10 +130,18 @@ async def chat_completions(request: OpenAIRequest, authorization: str = Header(.
             if api_key != settings.AUTH_TOKEN:
                 raise HTTPException(status_code=401, detail="Invalid API key")
 
-        # 特殊处理：如果启用了USE_REQUEST_API_KEY，但传入的key是主AUTH_TOKEN，则强制使用token池
-        if settings.USE_REQUEST_API_KEY and request.api_key and request.api_key == settings.AUTH_TOKEN:
-            logger.info("🔑 检测到主AUTH_TOKEN，强制使用token池机制")
-            request.api_key = None
+        # 如果启用了USE_REQUEST_API_KEY，则使用请求头中的API Key
+        if settings.USE_REQUEST_API_KEY:
+            # 从Authorization头中提取API Key
+            header_api_key = authorization[7:]
+            # 如果请求头中的api_key等于主AUTH_TOKEN，则强制使用token池
+            if header_api_key:
+                if header_api_key == settings.AUTH_TOKEN:
+                    logger.info("🔑 检测到主AUTH_TOKEN，强制使用token池机制")
+                    request.api_key = None
+                else:
+                    logger.info("🔑 使用请求头中的API Key覆盖请求体中的API Key")
+                    request.api_key = header_api_key
 
         # 使用多提供商路由器处理请求
         router_instance = get_provider_router_instance()

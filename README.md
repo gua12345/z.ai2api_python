@@ -194,6 +194,7 @@ docker run -d \
 | `SKIP_AUTH_TOKEN`     | `false`                                   | 跳过认证令牌验证       |
 | `SCAN_LIMIT`          | `200000`                                  | 扫描限制               |
 | `AUTH_TOKENS_FILE`    | `tokens.txt`                              | Z.AI 认证token文件路径 |
+| `USE_REQUEST_API_KEY` | `false`                                   | 是否使用请求体中的 ApiKey 作为认证令牌 |
 
 #### 提供商配置
 | 变量名                    | 默认值    | 说明                        |
