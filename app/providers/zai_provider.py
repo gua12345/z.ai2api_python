@@ -100,12 +100,12 @@ class ZAIProvider(BaseProvider):
         if token_pool:
             token_pool.mark_token_failure(token, error)
     
-    async def transform_request(self, request: OpenAIRequest) -> Dict[str, Any]:
+    async def transform_request(self, request: OpenAIRequest, api_key: Optional[str] = None) -> Dict[str, Any]:
         """转换OpenAI请求为Z.AI格式"""
         self.logger.info(f"🔄 转换 OpenAI 请求到 Z.AI 格式: {request.model}")
         
         # 获取认证令牌
-        token = await self.get_token()
+        token = api_key if api_key else await self.get_token()
         
         # 处理消息格式
         messages = []
@@ -218,6 +218,7 @@ class ZAIProvider(BaseProvider):
     async def chat_completion(
         self,
         request: OpenAIRequest,
+        api_key: Optional[str] = None,
         **kwargs
     ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
         """聊天完成接口"""
@@ -225,12 +226,12 @@ class ZAIProvider(BaseProvider):
 
         try:
             # 转换请求
-            transformed = await self.transform_request(request)
+            transformed = await self.transform_request(request, api_key=api_key)
 
             # 根据请求类型返回响应
             if request.stream:
                 # 流式响应
-                return self._create_stream_response_with_retry(request, transformed)
+                return self._create_stream_response_with_retry(request, transformed, api_key=api_key)
             else:
                 # 非流式响应
                 async with httpx.AsyncClient(timeout=30.0) as client:
@@ -254,14 +255,17 @@ class ZAIProvider(BaseProvider):
     async def _create_stream_response_with_retry(
         self,
         request: OpenAIRequest,
-        transformed: Dict[str, Any]
+        transformed: Dict[str, Any],
+        api_key: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """创建带重试机制的流式响应生成器"""
         retry_count = 0
         last_error = None
         current_token = transformed.get("token", "")
+        
+        max_retries = 0 if api_key else settings.MAX_RETRIES
 
-        while retry_count <= settings.MAX_RETRIES:
+        while retry_count <= max_retries:
             try:
                 # 如果是重试，重新获取令牌并更新请求
                 if retry_count > 0:
@@ -270,17 +274,18 @@ class ZAIProvider(BaseProvider):
                     await asyncio.sleep(delay)
 
                     # 标记前一个token失败（如果不是匿名模式）
-                    if current_token and not settings.ANONYMOUS_MODE:
+                    if current_token and not settings.ANONYMOUS_MODE and not api_key:
                         self.mark_token_failure(current_token, Exception(f"Retry {retry_count}: {last_error}"))
 
-                    # 重新获取令牌
-                    self.logger.info("🔑 重新获取令牌用于重试...")
-                    new_token = await self.get_token()
-                    if not new_token:
-                        self.logger.error("❌ 重试时无法获取有效的认证令牌")
-                        raise Exception("重试时无法获取有效的认证令牌")
-                    transformed["headers"]["Authorization"] = f"Bearer {new_token}"
-                    current_token = new_token
+                    # 如果不是使用api_key，则重新获取令牌
+                    if not api_key:
+                        self.logger.info("🔑 重新获取令牌用于重试...")
+                        new_token = await self.get_token()
+                        if not new_token:
+                            self.logger.error("❌ 重试时无法获取有效的认证令牌")
+                            raise Exception("重试时无法获取有效的认证令牌")
+                        transformed["headers"]["Authorization"] = f"Bearer {new_token}"
+                        current_token = new_token
 
                 async with httpx.AsyncClient(timeout=60.0) as client:
                     # 发送请求到上游
@@ -302,14 +307,14 @@ class ZAIProvider(BaseProvider):
                             last_error = f"400 Bad Request: {error_msg}"
 
                             # 如果还有重试机会，继续循环
-                            if retry_count <= settings.MAX_RETRIES:
+                            if retry_count <= max_retries:
                                 continue
                             else:
                                 # 达到最大重试次数，抛出错误
-                                self.logger.error(f"❌ 达到最大重试次数 ({settings.MAX_RETRIES})，请求失败")
+                                self.logger.error(f"❌ 达到最大重试次数 ({max_retries})，请求失败")
                                 error_response = {
                                     "error": {
-                                        "message": f"Request failed after {settings.MAX_RETRIES} retries: {last_error}",
+                                        "message": f"Request failed after {max_retries} retries: {last_error}",
                                         "type": "upstream_error",
                                         "code": 400
                                     }
@@ -341,7 +346,7 @@ class ZAIProvider(BaseProvider):
                             self.logger.info(f"✨ 第 {retry_count} 次重试成功")
 
                         # 标记token使用成功（如果不是匿名模式）
-                        if current_token and not settings.ANONYMOUS_MODE:
+                        if current_token and not settings.ANONYMOUS_MODE and not api_key:
                             token_pool = get_token_pool()
                             if token_pool:
                                 token_pool.mark_token_success(current_token)
@@ -359,19 +364,19 @@ class ZAIProvider(BaseProvider):
                 self.logger.error(traceback.format_exc())
 
                 # 标记token失败（如果不是匿名模式）
-                if current_token and not settings.ANONYMOUS_MODE:
+                if current_token and not settings.ANONYMOUS_MODE and not api_key:
                     self.mark_token_failure(current_token, e)
 
                 # 检查是否还可以重试
                 retry_count += 1
                 last_error = str(e)
 
-                if retry_count > settings.MAX_RETRIES:
+                if retry_count > max_retries:
                     # 达到最大重试次数，返回错误
-                    self.logger.error(f"❌ 达到最大重试次数 ({settings.MAX_RETRIES})，流处理失败")
+                    self.logger.error(f"❌ 达到最大重试次数 ({max_retries})，流处理失败")
                     error_response = {
                         "error": {
-                            "message": f"Stream processing failed after {settings.MAX_RETRIES} retries: {last_error}",
+                            "message": f"Stream processing failed after {max_retries} retries: {last_error}",
                             "type": "stream_error"
                         }
                     }

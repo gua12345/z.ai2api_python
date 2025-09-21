@@ -52,6 +52,7 @@ class BaseProvider(ABC):
     async def chat_completion(
         self, 
         request: OpenAIRequest,
+        api_key: Optional[str] = None,
         **kwargs
     ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
         """

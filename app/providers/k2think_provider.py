@@ -406,7 +406,9 @@ class K2ThinkProvider(BaseProvider):
     
     async def chat_completion(
         self,
-        request: OpenAIRequest
+        request: OpenAIRequest,
+        api_key: Optional[str] = None,
+        **kwargs
     ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
         """聊天完成接口"""
         self.log_request(request)

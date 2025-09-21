@@ -143,6 +143,10 @@ class ProviderRouter:
         
         try:
             # 调用提供商处理请求
+            # 检查是否使用请求中的API Key
+            if settings.USE_REQUEST_API_KEY and request.api_key:
+                kwargs['api_key'] = request.api_key
+
             result = await provider.chat_completion(request, **kwargs)
             logger.info(f"🎉 请求处理完成: {provider.name}")
             return result

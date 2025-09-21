@@ -171,6 +171,7 @@ class Settings(BaseSettings):
     TOOL_SUPPORT: bool = os.getenv("TOOL_SUPPORT", "true").lower() == "true"
     SCAN_LIMIT: int = int(os.getenv("SCAN_LIMIT", "200000"))
     SKIP_AUTH_TOKEN: bool = os.getenv("SKIP_AUTH_TOKEN", "false").lower() == "true"
+    USE_REQUEST_API_KEY: bool = os.getenv("USE_REQUEST_API_KEY", "false").lower() == "true"
 
     # LongCat Configuration
     LONGCAT_PASSPORT_TOKEN: Optional[str] = os.getenv("LONGCAT_PASSPORT_TOKEN")

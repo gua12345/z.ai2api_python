@@ -130,6 +130,11 @@ async def chat_completions(request: OpenAIRequest, authorization: str = Header(.
             if api_key != settings.AUTH_TOKEN:
                 raise HTTPException(status_code=401, detail="Invalid API key")
 
+        # 特殊处理：如果启用了USE_REQUEST_API_KEY，但传入的key是主AUTH_TOKEN，则强制使用token池
+        if settings.USE_REQUEST_API_KEY and request.api_key and request.api_key == settings.AUTH_TOKEN:
+            logger.info("🔑 检测到主AUTH_TOKEN，强制使用token池机制")
+            request.api_key = None
+
         # 使用多提供商路由器处理请求
         router_instance = get_provider_router_instance()
         result = await router_instance.route_request(request)

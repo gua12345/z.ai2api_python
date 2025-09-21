@@ -31,6 +31,7 @@ class OpenAIRequest(BaseModel):
     max_tokens: Optional[int] = None
     tools: Optional[List[Dict[str, Any]]] = None
     tool_choice: Optional[Any] = None
+    api_key: Optional[str] = None
 
 
 class ModelItem(BaseModel):

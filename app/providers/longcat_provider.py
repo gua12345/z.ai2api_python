@@ -136,10 +136,10 @@ class LongCatProvider(BaseProvider):
             formatted_messages.append(f"{msg.role}:{content}")
         return ";".join(formatted_messages)
     
-    async def transform_request(self, request: OpenAIRequest) -> Dict[str, Any]:
+    async def transform_request(self, request: OpenAIRequest, api_key: Optional[str] = None) -> Dict[str, Any]:
         """转换OpenAI请求为LongCat格式"""
         # 获取认证token
-        passport_token = self.get_passport_token()
+        passport_token = api_key if api_key else self.get_passport_token()
         if not passport_token:
             raise Exception("未配置 LongCat passport token，请设置 LONGCAT_PASSPORT_TOKEN 环境变量或 LONGCAT_TOKENS_FILE")
 
@@ -182,6 +182,7 @@ class LongCatProvider(BaseProvider):
     async def chat_completion(
         self,
         request: OpenAIRequest,
+        api_key: Optional[str] = None,
         **kwargs
     ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
         """聊天完成接口"""
@@ -189,7 +190,7 @@ class LongCatProvider(BaseProvider):
 
         try:
             # 转换请求
-            transformed = await self.transform_request(request)
+            transformed = await self.transform_request(request, api_key=api_key)
 
             # 发送请求
             async with httpx.AsyncClient(timeout=30.0) as client:
