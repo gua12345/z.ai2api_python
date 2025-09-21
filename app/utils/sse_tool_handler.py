@@ -414,7 +414,23 @@ class SSEToolHandler:
             text = '{' + text
             logger.debug(f"🔧 补全开始括号")
 
-        # 2. 修复末尾多余的反斜杠和引号（json-repair 可能处理不当）
+        # 2. 修复字符串中的转义引号 \"
+        # 匹配模式：在 JSON 字符串值中的 \" 转义为 "
+        # 例如：{"toStation\":\"BJP\"} -> {"toStation":"BJP"}
+        # 例如：{"fromStation":"GZQ","toStation\":\"BJP\",\"date\":\"2025-10-01\"}
+        #      -> {"fromStation":"GZQ","toStation":"BJP","date":"2025-10-01"}
+        # 2. 修复字符串中的转义引号 \"
+        # 匹配模式：在 JSON 字符串值中的 \" 转义为 "
+        # 例如：{"toStation":"BJP"} -> {"toStation":"BJP"}
+        # 例如：{"fromStation":"GZQ","toStation":"BJP","date":"2025-10-01"}
+        #      -> {"fromStation":"GZQ","toStation":"BJP","date":"2025-10-01"}
+        # 使用更直接的方法，替换所有 \" 为 "
+        pattern = r'\\"'
+        if re.search(pattern, text):
+            text = re.sub(pattern, '"', text)
+            logger.debug(f"🔧 修复字符串中的转义引号")
+
+        # 3. 修复末尾多余的反斜杠和引号（json-repair 可能处理不当）
         # 匹配模式：字符串值末尾的 \" 后面跟着 } 或 ,
         # 例如：{"url":"https://www.bilibili.com\"} -> {"url":"https://www.bilibili.com"}
         # 例如：{"url":"https://www.bilibili.com\",} -> {"url":"https://www.bilibili.com",}
