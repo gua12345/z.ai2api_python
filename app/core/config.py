@@ -137,9 +137,9 @@ class Settings(BaseSettings):
         return []
 
     # Model Configuration
-    PRIMARY_MODEL: str = os.getenv("PRIMARY_MODEL", "GLM-4.5")
-    THINKING_MODEL: str = os.getenv("THINKING_MODEL", "GLM-4.5-Thinking")
-    SEARCH_MODEL: str = os.getenv("SEARCH_MODEL", "GLM-4.5-Search")
+    PRIMARY_MODEL: str = os.getenv("PRIMARY_MODEL", "GLM-4.6")
+    THINKING_MODEL: str = os.getenv("THINKING_MODEL", "GLM-4.6-Thinking")
+    SEARCH_MODEL: str = os.getenv("SEARCH_MODEL", "GLM-4.6-Search")
     AIR_MODEL: str = os.getenv("AIR_MODEL", "GLM-4.5-Air")
 
 
@@ -150,9 +150,9 @@ class Settings(BaseSettings):
         """模型到提供商的映射"""
         return {
             # Z.AI models
-            "GLM-4.5": "zai",
-            "GLM-4.5-Thinking": "zai",
-            "GLM-4.5-Search": "zai",
+            "GLM-4.6": "zai",
+            "GLM-4.6-Thinking": "zai",
+            "GLM-4.6-Search": "zai",
             "GLM-4.5-Air": "zai",
             # K2Think models
             "MBZUAI-IFM/K2-Think": "k2think",

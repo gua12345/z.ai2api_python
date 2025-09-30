@@ -42,9 +42,9 @@ class ZAIProvider(BaseProvider):
         
         # 模型映射
         self.model_mapping = {
-            settings.PRIMARY_MODEL: "0727-360B-API",  # GLM-4.5
-            settings.THINKING_MODEL: "0727-360B-API",  # GLM-4.5-Thinking
-            settings.SEARCH_MODEL: "0727-360B-API",  # GLM-4.5-Search
+            settings.PRIMARY_MODEL: "GLM-4-6-API-V1",  # GLM-4.6
+            settings.THINKING_MODEL: "GLM-4-6-API-V1",  # GLM-4.6-Thinking
+            settings.SEARCH_MODEL: "GLM-4-6-API-V1",  # GLM-4.6-Search
             settings.AIR_MODEL: "0727-106B-API",  # GLM-4.5-Air
         }
     
@@ -136,7 +136,7 @@ class ZAIProvider(BaseProvider):
         is_air = requested_model == settings.AIR_MODEL
         
         # 获取上游模型ID
-        upstream_model_id = self.model_mapping.get(requested_model, "0727-360B-API")
+        upstream_model_id = self.model_mapping.get(requested_model, "GLM-4-6-API-V1")
         
         # 构建MCP服务器列表
         mcp_servers = []
