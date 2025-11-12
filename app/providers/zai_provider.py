@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 import os
 import uuid
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, AsyncGenerator, Union
 from app.utils.user_agent import get_random_user_agent
 from app.utils.fe_version import get_latest_fe_version
@@ -118,6 +118,19 @@ def _extract_user_id_from_token(token: str) -> str:
         if isinstance(val, (str, int)) and str(val):
             return str(val)
     return "guest"
+
+
+def _extract_user_name_from_token(token: str) -> str:
+    """Extract user name from JWT's email field. Fallback to 'Guest'."""
+    payload = _decode_jwt_payload(token) if token else {}
+    email = payload.get("email", "")
+    
+    # 如果有email字段，提取@前面的部分作为用户名
+    if email and isinstance(email, str) and "@" in email:
+        return email.split("@")[0]
+    
+    # 如果没有email或解析失败，返回Guest
+    return "Guest"
 
 
 
@@ -382,6 +395,7 @@ class ZAIProvider(BaseProvider):
         # 获取认证令牌
         token = await self.get_token()
         user_id = _extract_user_id_from_token(token)
+        user_name = _extract_user_name_from_token(token)
 
         # 生成 chat_id（用于图片上传）
         chat_id = generate_uuid()
@@ -607,7 +621,7 @@ class ZAIProvider(BaseProvider):
             },
             "mcp_servers": mcp_servers,
             "variables": {
-                "{{USER_NAME}}": "Guest",
+                "{{USER_NAME}}": user_name,
                 "{{USER_LOCATION}}": "Unknown",
                 "{{CURRENT_DATETIME}}": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "{{CURRENT_DATE}}": datetime.now().strftime("%Y-%m-%d"),
@@ -661,6 +675,23 @@ class ZAIProvider(BaseProvider):
             "X-Signature": signature,
         }
 
+        # 获取浏览器信息
+        user_agent_str = get_random_user_agent("chrome")
+        
+        # 获取屏幕和视口信息（使用默认值）
+        screen_width = 2294
+        screen_height = 960
+        viewport_width = 1288
+        viewport_height = 842
+        color_depth = 24
+        pixel_ratio = 1.5
+        
+        # 获取时间和时区信息
+        now = datetime.now()
+        timezone_offset = -480  # Asia/Shanghai UTC+8 = -480 minutes
+        local_time_str = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
+        utc_time_str = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        
         query_params = {
             "timestamp": str(timestamp_ms),
             "requestId": request_id,
@@ -668,8 +699,36 @@ class ZAIProvider(BaseProvider):
             "token": token,
             "version": "0.0.1",
             "platform": "web",
+            "user_agent": user_agent_str,
+            "language": "zh-CN",
+            "languages": "zh-CN,en,en-GB,en-US",
+            "timezone": "Asia/Shanghai",
+            "cookie_enabled": "true",
+            "screen_width": str(screen_width),
+            "screen_height": str(screen_height),
+            "screen_resolution": f"{screen_width}x{screen_height}",
+            "viewport_height": str(viewport_height),
+            "viewport_width": str(viewport_width),
+            "viewport_size": f"{viewport_width}x{viewport_height}",
+            "color_depth": str(color_depth),
+            "pixel_ratio": str(pixel_ratio),
             "current_url": f"https://chat.z.ai/c/{chat_id}",
             "pathname": f"/c/{chat_id}",
+            "search": "",
+            "hash": "",
+            "host": "chat.z.ai",
+            "hostname": "chat.z.ai",
+            "protocol": "https:",
+            "referrer": "",
+            "title": "Z.ai Chat - Free AI powered by GLM-4.6 & GLM-4.5",
+            "timezone_offset": str(timezone_offset),
+            "local_time": local_time_str,
+            "utc_time": utc_time_str,
+            "is_mobile": "false",
+            "is_touch": "false",
+            "max_touch_points": "0",
+            "browser_name": "Chrome",
+            "os_name": "Windows",
             "signature_timestamp": str(timestamp_ms),
         }
         signed_url = f"{self.config.api_endpoint}?{urlencode(query_params)}"
