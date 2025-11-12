@@ -616,8 +616,8 @@ class ZAIProvider(BaseProvider):
                 "enable_thinking": is_thinking,
             },
             "background_tasks": {
-                "title_generation": False,
-                "tags_generation": False,
+                "title_generation": True,
+                "tags_generation": True,
             },
             "mcp_servers": mcp_servers,
             "variables": {
@@ -687,9 +687,10 @@ class ZAIProvider(BaseProvider):
         pixel_ratio = 1.5
         
         # 获取时间和时区信息
-        now = datetime.now()
         timezone_offset = -480  # Asia/Shanghai UTC+8 = -480 minutes
-        local_time_str = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
+        # 使用 timestamp 解析出的时间
+        timestamp_datetime = datetime.fromtimestamp(timestamp_ms / 1000)
+        local_time_str = timestamp_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
         utc_time_str = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
         
         query_params = {
@@ -736,7 +737,8 @@ class ZAIProvider(BaseProvider):
         # 记录请求详情用于调试
         logger.debug(f"[Z.AI] 请求头: Authorization=Bearer *****, X-Signature={signature[:16] if signature else '(空)'}...")
         logger.debug(f"[Z.AI] URL 参数: timestamp={timestamp_ms}, requestId={request_id}, user_id={user_id}")
-        
+        logger.debug(f"[Z.AI] username = {user_name}")
+
         # 存储当前token用于错误处理
         self._current_token = token
 
