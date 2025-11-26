@@ -275,7 +275,7 @@ class ZAIProvider(BaseProvider):
         if token_pool:
             token_pool.mark_token_failure(token, error)
 
-    async def upload_image(self, data_url: str, chat_id: str, token: str, user_id: str) -> Optional[Dict]:
+    async def upload_image(self, data_url: str, chat_id: str, current_user_message_id: str, token: str, user_id: str) -> Optional[Dict]:
         """上传 base64 编码的图片到 Z.AI 服务器
 
         Args:
@@ -297,7 +297,10 @@ class ZAIProvider(BaseProvider):
 
             # 解码 base64 数据
             image_data = base64.b64decode(encoded)
+            # 必须增加图片后缀，不然不认图，打开的cdn链接不知道使用什么请求头
+            extension = mime_type.split('/')[-1]
             filename = str(uuid.uuid4())
+            filename = f"{filename}.{extension}"
 
             self.logger.debug(f"📤 上传图片: {filename}, 大小: {len(image_data)} bytes")
 
@@ -336,6 +339,8 @@ class ZAIProvider(BaseProvider):
                     file_id = result.get("id")
                     file_name = result.get("filename")
                     file_size = len(image_data)
+                    oss_endpoint = result.get('meta').get("oss_endpoint")
+                    cdn_url = result.get('meta').get("cdn_url")
 
                     self.logger.info(f"✅ 图片上传成功: {file_id}_{file_name}")
 
@@ -354,6 +359,8 @@ class ZAIProvider(BaseProvider):
                                 "content_type": mime_type,
                                 "size": file_size,
                                 "data": {},
+                                "oss_endpoint": oss_endpoint,
+                                "cdn_url": cdn_url
                             },
                             "created_at": current_timestamp,
                             "updated_at": current_timestamp
@@ -365,7 +372,8 @@ class ZAIProvider(BaseProvider):
                         "size": file_size,
                         "error": "",
                         "itemId": str(uuid.uuid4()),
-                        "media": "image"
+                        "media": "image",
+                        "ref_user_msg_id": current_user_message_id
                     }
                 else:
                     self.logger.error(f"❌ 图片上传失败: {response.status_code} - {response.text}")
@@ -385,6 +393,9 @@ class ZAIProvider(BaseProvider):
 
         # 生成 chat_id（用于图片上传）
         chat_id = generate_uuid()
+        # 生成 current_user_message_id (用于将消息与图片联系)
+
+        current_user_message_id = generate_uuid()
 
         # 处理消息格式 - Z.AI 使用单独的 files 字段传递图片
         messages = []
@@ -421,13 +432,13 @@ class ZAIProvider(BaseProvider):
                                 # 如果是 base64 编码的图片，上传并添加到 files 数组
                                 if image_url.startswith("data:") and not settings.ANONYMOUS_MODE:
                                     self.logger.info(f"🔄 上传 base64 图片到 Z.AI 服务器")
-                                    file_info = await self.upload_image(image_url, chat_id, token, user_id)
+                                    file_info = await self.upload_image(image_url, chat_id, current_user_message_id, token, user_id)
 
                                     if file_info:
                                         files.append(file_info)
                                         self.logger.info(f"✅ 图片已添加到 files 数组")
 
-                                        # 在消息中保留图片引用
+                                        """# 在消息中保留图片引用
                                         image_ref = f"{file_info['id']}_{file_info['name']}"
                                         image_parts.append({
                                             "type": "image_url",
@@ -435,7 +446,9 @@ class ZAIProvider(BaseProvider):
                                                 "url": image_ref
                                             }
                                         })
-                                        self.logger.debug(f"📎 图片引用: {image_ref}")
+                                        self.logger.debug(f"📎 图片引用: {image_ref}")"""
+
+                                        # 不在消息中保留引用，保留引用会导致 enable_thinking 参数失效
                                     else:
                                         # 上传失败，添加错误提示
                                         self.logger.warning(f"⚠️ 图片上传失败")
@@ -460,13 +473,13 @@ class ZAIProvider(BaseProvider):
                                 # 如果是 base64 编码的图片，上传并添加到 files 数组
                                 if image_url.startswith("data:") and not settings.ANONYMOUS_MODE:
                                     self.logger.info(f"🔄 上传 base64 图片到 Z.AI 服务器")
-                                    file_info = await self.upload_image(image_url, chat_id, token, user_id)
+                                    file_info = await self.upload_image(image_url, chat_id, current_user_message_id,token, user_id)
 
                                     if file_info:
                                         files.append(file_info)
                                         self.logger.info(f"✅ 图片已添加到 files 数组")
 
-                                        # 在消息中保留图片引用
+                                        """# 在消息中保留图片引用
                                         image_ref = f"{file_info['id']}_{file_info['name']}"
                                         image_parts.append({
                                             "type": "image_url",
@@ -474,7 +487,9 @@ class ZAIProvider(BaseProvider):
                                                 "url": image_ref
                                             }
                                         })
-                                        self.logger.debug(f"📎 图片引用: {image_ref}")
+                                        self.logger.debug(f"📎 图片引用: {image_ref}")"""
+
+                                        # 不在消息中保留引用，保留引用会导致 enable_thinking 参数失效
                                     else:
                                         # 上传失败，添加错误提示
                                         self.logger.warning(f"⚠️ 图片上传失败")
@@ -529,6 +544,8 @@ class ZAIProvider(BaseProvider):
                     break
         requested_model = request.model
         is_thinking = "-thinking" in requested_model.casefold()
+        if not is_thinking:
+            self.logger.info(f"此次调用不进行思考")
         is_search = "-search" in requested_model.casefold()
         is_advanced_search = requested_model == settings.GLM46_ADVANCED_SEARCH_MODEL
         is_air = "-air" in requested_model.casefold()
@@ -622,6 +639,8 @@ class ZAIProvider(BaseProvider):
                 "owned_by": "z.ai"
             },
             "chat_id": chat_id,
+            "current_user_message_id": current_user_message_id,
+            "current_user_message_parent_id": None,
             "id": generate_uuid(),
         }
 
@@ -677,6 +696,7 @@ class ZAIProvider(BaseProvider):
         # 记录请求详情用于调试
         logger.debug(f"[Z.AI] 请求头: Authorization=Bearer *****, X-Signature={signature[:16] if signature else '(空)'}...")
         logger.debug(f"[Z.AI] URL 参数: timestamp={timestamp_ms}, requestId={request_id}, user_id={user_id}")
+        #logger.debug(f"[Z.AI] 请求体 {body}")
         
         # 存储当前token用于错误处理
         self._current_token = token
