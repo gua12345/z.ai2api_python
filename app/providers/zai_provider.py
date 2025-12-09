@@ -978,6 +978,28 @@ class ZAIProvider(BaseProvider):
                                         )
                                         yield await self.format_sse_chunk(thinking_chunk)
 
+                                # 处理 MCP 工具调用结果（如图片处理等）
+                                elif phase == "other":
+                                    text_content = data.get("edit_content", "")
+                                    if text_content:
+                                        import re
+                                        url_match = re.search(r'<url>(.*?)</url>', text_content)
+                                        if url_match:
+                                            actual_url = url_match.group(1)
+                                            image_markdown = f"\n\n![]({actual_url})\n"
+
+                                            content_chunk = self.create_openai_chunk(
+                                                chat_id,
+                                                model,
+                                                {
+                                                    "role": "assistant",
+                                                    "content": image_markdown
+                                                }
+                                            )
+                                            output_data = await self.format_sse_chunk(content_chunk)
+                                            self.logger.debug(f"➡️ 输出图片内容到客户端: {output_data}")
+                                            yield output_data
+
                                 # 处理答案内容
                                 elif phase == "answer":
                                     delta_content = data.get("delta_content", "")
