@@ -108,7 +108,14 @@ async def list_models():
                 Model(id=settings.GLM46_MODEL, created=current_time, owned_by="z.ai"),
                 Model(id=settings.GLM46_THINKING_MODEL, created=current_time, owned_by="z.ai"),
                 Model(id=settings.GLM46_SEARCH_MODEL, created=current_time, owned_by="z.ai"),
+                Model(id=settings.GLM46_ADVANCED_SEARCH_MODEL, created=current_time, owned_by="z.ai"),
                 Model(id=settings.GLM45_AIR_MODEL, created=current_time, owned_by="z.ai"),
+                Model(id=settings.GLM46V_MODEL, created=current_time, owned_by="z.ai"),
+                Model(id=settings.GLM46V_IMAGE_SEARCH_MODEL, created=current_time, owned_by="z.ai"),
+                Model(id=settings.GLM46V_SHOPPING_MODEL, created=current_time, owned_by="z.ai"),
+                Model(id=settings.GLM46V_THINKING_MODEL, created=current_time, owned_by="z.ai"),
+                Model(id=settings.GLM46V_IMAGE_SEARCH_THINKING_MODEL, created=current_time, owned_by="z.ai"),
+                Model(id=settings.GLM46V_SHOPPING_THINKING_MODEL, created=current_time, owned_by="z.ai"),
             ]
         )
         return fallback_response

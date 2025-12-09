@@ -148,6 +148,12 @@ class ZAIProvider(BaseProvider):
             settings.GLM46_THINKING_MODEL: "GLM-4-6-API-V1",  # GLM-4.6-Thinking
             settings.GLM46_SEARCH_MODEL: "GLM-4-6-API-V1",  # GLM-4.6-Search
             settings.GLM46_ADVANCED_SEARCH_MODEL: "GLM-4-6-API-V1",  # GLM-4.6-advanced-search
+            settings.GLM46V_MODEL: "glm-4.6v",  # GLM-4.6V多模态
+            settings.GLM46V_IMAGE_SEARCH_MODEL: "glm-4.6v",  # GLM-4.6V多模态图片搜索
+            settings.GLM46V_SHOPPING_MODEL: "glm-4.6v",  # GLM-4.6V多模态购物
+            settings.GLM46V_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态思考
+            settings.GLM46V_IMAGE_SEARCH_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态图片搜索思考
+            settings.GLM46V_SHOPPING_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态购物思考
         }
     
     def get_supported_models(self) -> List[str]:
@@ -162,6 +168,12 @@ class ZAIProvider(BaseProvider):
             settings.GLM46_THINKING_MODEL,
             settings.GLM46_SEARCH_MODEL,
             settings.GLM46_ADVANCED_SEARCH_MODEL,
+            settings.GLM46V_MODEL,
+            settings.GLM46V_IMAGE_SEARCH_MODEL,
+            settings.GLM46V_SHOPPING_MODEL,
+            settings.GLM46V_THINKING_MODEL,
+            settings.GLM46V_IMAGE_SEARCH_THINKING_MODEL,
+            settings.GLM46V_SHOPPING_THINKING_MODEL,
         ]
 
     def _get_proxy_config(self) -> Optional[str]:
@@ -438,17 +450,16 @@ class ZAIProvider(BaseProvider):
                                         files.append(file_info)
                                         self.logger.info(f"✅ 图片已添加到 files 数组")
 
-                                        """# 在消息中保留图片引用
-                                        image_ref = f"{file_info['id']}_{file_info['name']}"
+                                        # 在消息中保留图片引用
+                                        image_ref = f"{file_info['id']}"
                                         image_parts.append({
                                             "type": "image_url",
                                             "image_url": {
                                                 "url": image_ref
                                             }
                                         })
-                                        self.logger.debug(f"📎 图片引用: {image_ref}")"""
+                                        self.logger.debug(f"📎 图片引用: {image_ref}")
 
-                                        # 不在消息中保留引用，保留引用会导致 enable_thinking 参数失效
                                     else:
                                         # 上传失败，添加错误提示
                                         self.logger.warning(f"⚠️ 图片上传失败")
@@ -459,7 +470,9 @@ class ZAIProvider(BaseProvider):
                                         self.logger.warning(f"⚠️ 非 base64 图片或匿名模式，保留原始URL")
                                     image_parts.append({
                                         "type": "image_url",
-                                        "image_url": {"url": image_url}
+                                        "image_url": {
+                                            "url": image_url
+                                        }
                                     })
                     elif isinstance(part, dict):
                         # 直接是字典格式的内容
@@ -479,17 +492,16 @@ class ZAIProvider(BaseProvider):
                                         files.append(file_info)
                                         self.logger.info(f"✅ 图片已添加到 files 数组")
 
-                                        """# 在消息中保留图片引用
-                                        image_ref = f"{file_info['id']}_{file_info['name']}"
+                                        # 在消息中保留图片引用
+                                        image_ref = f"{file_info['id']}"
                                         image_parts.append({
                                             "type": "image_url",
                                             "image_url": {
                                                 "url": image_ref
                                             }
                                         })
-                                        self.logger.debug(f"📎 图片引用: {image_ref}")"""
+                                        self.logger.debug(f"📎 图片引用: {image_ref}")
 
-                                        # 不在消息中保留引用，保留引用会导致 enable_thinking 参数失效
                                     else:
                                         # 上传失败，添加错误提示
                                         self.logger.warning(f"⚠️ 图片上传失败")
@@ -500,7 +512,7 @@ class ZAIProvider(BaseProvider):
                                         self.logger.warning(f"⚠️ 非 base64 图片或匿名模式，保留原始URL")
                                     image_parts.append({
                                         "type": "image_url",
-                                        "image_url": {"url": image_url}
+                                        "image_url": image_url
                                     })
                     elif isinstance(part, str):
                         # 纯字符串部分
@@ -570,6 +582,25 @@ class ZAIProvider(BaseProvider):
             mcp_servers.append("advanced-search")
             self.logger.info("🔍 检测到高级搜索模型，添加 advanced-search MCP 服务器")
 
+        # 处理 GLM-4.6V 模型的 VLM 工具
+        # 只有图像识别功能的模型
+        if (requested_model == settings.GLM46V_MODEL or 
+            requested_model == settings.GLM46V_THINKING_MODEL):
+            mcp_servers.append("vlm-image-recognition")
+            self.logger.info(f"🖼️ 检测到 {requested_model} 模型，添加 vlm-image-recognition MCP 服务器")
+        
+        # 图像搜索 + 图像识别的模型
+        if (requested_model == settings.GLM46V_IMAGE_SEARCH_MODEL or 
+            requested_model == settings.GLM46V_IMAGE_SEARCH_THINKING_MODEL):
+            mcp_servers.extend(["vlm-image-search", "vlm-image-recognition"])
+            self.logger.info(f"🔍 检测到 {requested_model} 模型，添加 vlm-image-search 和 vlm-image-recognition MCP 服务器")
+        
+        # 购物搜索 + 图像识别的模型
+        if (requested_model == settings.GLM46V_SHOPPING_MODEL or 
+            requested_model == settings.GLM46V_SHOPPING_THINKING_MODEL):
+            mcp_servers.extend(["shopping-search"])
+            self.logger.info(f"🛒 检测到 {requested_model} 模型，添加 shopping-search MCP 服务器")
+
         # 构建上游请求体
         body = {
             "stream": True,  # 总是使用流式
@@ -633,11 +664,6 @@ class ZAIProvider(BaseProvider):
                 "{{CURRENT_TIMEZONE}}": "Asia/Shanghai",
                 "{{USER_LANGUAGE}}": "zh-CN",
             },
-            "model_item": {
-                "id": upstream_model_id,
-                "name": requested_model,
-                "owned_by": "z.ai"
-            },
             "chat_id": chat_id,
             "current_user_message_id": current_user_message_id,
             "current_user_message_parent_id": None,
@@ -696,7 +722,7 @@ class ZAIProvider(BaseProvider):
         # 记录请求详情用于调试
         logger.debug(f"[Z.AI] 请求头: Authorization=Bearer *****, X-Signature={signature[:16] if signature else '(空)'}...")
         logger.debug(f"[Z.AI] URL 参数: timestamp={timestamp_ms}, requestId={request_id}, user_id={user_id}")
-        #logger.debug(f"[Z.AI] 请求体 {body}")
+        logger.debug(f"[Z.AI] 请求体 {body}")
         
         # 存储当前token用于错误处理
         self._current_token = token

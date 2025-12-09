@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     GLM46_THINKING_MODEL: str = os.getenv("GLM46_THINKING_MODEL", "GLM-4.6-Thinking")
     GLM46_SEARCH_MODEL: str = os.getenv("GLM46_SEARCH_MODEL", "GLM-4.6-Search")
     GLM46_ADVANCED_SEARCH_MODEL: str = os.getenv("GLM46_ADVANCED_SEARCH_MODEL", "GLM-4.6-advanced-search")
+    GLM46V_MODEL: str = os.getenv("GLM46V_MODEL", "GLM-4.6V")
+    GLM46V_IMAGE_SEARCH_MODEL: str = os.getenv("GLM46V_IMAGE_SEARCH_MODEL", "GLM-4.6V-Image-Search")
+    GLM46V_SHOPPING_MODEL: str = os.getenv("GLM46V_SHOPPING_MODEL", "GLM-4.6V-Shopping")
+    GLM46V_THINKING_MODEL: str = os.getenv("GLM46V_THINKING_MODEL", "GLM-4.6V-Thinking")
+    GLM46V_IMAGE_SEARCH_THINKING_MODEL: str = os.getenv("GLM46V_IMAGE_SEARCH_THINKING_MODEL", "GLM-4.6V-Image-Search-Thinking")
+    GLM46V_SHOPPING_THINKING_MODEL: str = os.getenv("GLM46V_SHOPPING_THINKING_MODEL", "GLM-4.6V-Shopping-Thinking")
 
     # Provider Model Mapping
     @property
@@ -45,6 +51,12 @@ class Settings(BaseSettings):
             "GLM-4.6-Thinking": "zai",
             "GLM-4.6-Search": "zai",
             "GLM-4.6-advanced-search": "zai",
+            "GLM-4.6V": "zai",
+            "GLM-4.6V-Image-Search": "zai",
+            "GLM-4.6V-Shopping": "zai",
+            "GLM-4.6V-Thinking": "zai",
+            "GLM-4.6V-Image-Search-Thinking": "zai",
+            "GLM-4.6V-Shopping-Thinking": "zai",
             # K2Think models
             "MBZUAI-IFM/K2-Think": "k2think",
             # LongCat models
