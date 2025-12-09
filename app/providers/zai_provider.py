@@ -151,6 +151,8 @@ class ZAIProvider(BaseProvider):
             settings.GLM46V_MODEL: "glm-4.6v",  # GLM-4.6V多模态
             settings.GLM46V_IMAGE_SEARCH_MODEL: "glm-4.6v",  # GLM-4.6V多模态图片搜索
             settings.GLM46V_SHOPPING_MODEL: "glm-4.6v",  # GLM-4.6V多模态购物
+            settings.GLM46V_IMAGE_PROCESSING_MODEL: "glm-4.6v",  # GLM-4.6V多模态图片处理
+            settings.GLM46V_IMAGE_PROCESSING_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态图片处理思考
             settings.GLM46V_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态思考
             settings.GLM46V_IMAGE_SEARCH_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态图片搜索思考
             settings.GLM46V_SHOPPING_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态购物思考
@@ -171,6 +173,8 @@ class ZAIProvider(BaseProvider):
             settings.GLM46V_MODEL,
             settings.GLM46V_IMAGE_SEARCH_MODEL,
             settings.GLM46V_SHOPPING_MODEL,
+            settings.GLM46V_IMAGE_PROCESSING_MODEL,
+            settings.GLM46V_IMAGE_PROCESSING_THINKING_MODEL,
             settings.GLM46V_THINKING_MODEL,
             settings.GLM46V_IMAGE_SEARCH_THINKING_MODEL,
             settings.GLM46V_SHOPPING_THINKING_MODEL,
@@ -595,11 +599,17 @@ class ZAIProvider(BaseProvider):
             mcp_servers.extend(["vlm-image-search", "vlm-image-recognition"])
             self.logger.info(f"🔍 检测到 {requested_model} 模型，添加 vlm-image-search 和 vlm-image-recognition MCP 服务器")
         
+        # 图片处理的模型
+        if (requested_model == settings.GLM46V_IMAGE_PROCESSING_MODEL or
+            requested_model == settings.GLM46V_IMAGE_PROCESSING_THINKING_MODEL):
+            mcp_servers.extend(["vlm-image-processing"])
+            self.logger.info(f"🖼️ 检测到 {requested_model} 模型，添加 vlm-image-processing MCP 服务器")
+
         # 购物搜索 + 图像识别的模型
-        if (requested_model == settings.GLM46V_SHOPPING_MODEL or 
+        if (requested_model == settings.GLM46V_SHOPPING_MODEL or
             requested_model == settings.GLM46V_SHOPPING_THINKING_MODEL):
-            mcp_servers.extend(["shopping-search"])
-            self.logger.info(f"🛒 检测到 {requested_model} 模型，添加 shopping-search MCP 服务器")
+            mcp_servers.extend(["vlm-image-processing", "vlm-image-recognition"])
+            self.logger.info(f"🛒 检测到 {requested_model} 模型，添加 shopping-search MCP 和 vlm-image-recognition 服务器")
 
         # 构建上游请求体
         body = {

@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     GLM46V_MODEL: str = os.getenv("GLM46V_MODEL", "GLM-4.6V")
     GLM46V_IMAGE_SEARCH_MODEL: str = os.getenv("GLM46V_IMAGE_SEARCH_MODEL", "GLM-4.6V-Image-Search")
     GLM46V_SHOPPING_MODEL: str = os.getenv("GLM46V_SHOPPING_MODEL", "GLM-4.6V-Shopping")
+    GLM46V_IMAGE_PROCESSING_MODEL: str = os.getenv("GLM46V_IMAGE_PROCESSING_MODEL", "GLM-4.6V-Image-Processing")
+    GLM46V_IMAGE_PROCESSING_THINKING_MODEL: str = os.getenv("GLM46V_IMAGE_PROCESSING_THINKING_MODEL", "GLM-4.6V-Image-Processing-Thinking")
     GLM46V_THINKING_MODEL: str = os.getenv("GLM46V_THINKING_MODEL", "GLM-4.6V-Thinking")
     GLM46V_IMAGE_SEARCH_THINKING_MODEL: str = os.getenv("GLM46V_IMAGE_SEARCH_THINKING_MODEL", "GLM-4.6V-Image-Search-Thinking")
     GLM46V_SHOPPING_THINKING_MODEL: str = os.getenv("GLM46V_SHOPPING_THINKING_MODEL", "GLM-4.6V-Shopping-Thinking")
@@ -54,6 +56,8 @@ class Settings(BaseSettings):
             "GLM-4.6V": "zai",
             "GLM-4.6V-Image-Search": "zai",
             "GLM-4.6V-Shopping": "zai",
+            "GLM-4.6V-Image-Processing": "zai",
+            "GLM-4.6V-Image-Processing-Thinking": "zai",
             "GLM-4.6V-Thinking": "zai",
             "GLM-4.6V-Image-Search-Thinking": "zai",
             "GLM-4.6V-Shopping-Thinking": "zai",
