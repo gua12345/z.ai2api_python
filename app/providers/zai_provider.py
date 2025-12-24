@@ -119,6 +119,14 @@ def _extract_user_id_from_token(token: str) -> str:
             return str(val)
     return "guest"
 
+def _extract_user_name_from_token(token: str) -> str:
+    payload = _decode_jwt_payload(token) if token else {}
+    email = payload.get('email')
+
+    # 如果 email 存在且包含 '@'，则分割并返回第一部分；否则返回 "Guest"
+    return email.split('@', 1)[0] if email and '@' in email else "Guest"
+
+
 
 
 class ZAIProvider(BaseProvider):
@@ -410,6 +418,7 @@ class ZAIProvider(BaseProvider):
         # 获取认证令牌
         token = await self.get_token()
         user_id = _extract_user_id_from_token(token)
+        user_name = _extract_user_name_from_token(token)
 
         # 生成 chat_id（用于图片上传）
         chat_id = generate_uuid()
@@ -669,7 +678,7 @@ class ZAIProvider(BaseProvider):
             },
             "mcp_servers": mcp_servers,
             "variables": {
-                "{{USER_NAME}}": "Guest",
+                "{{USER_NAME}}": user_name,
                 "{{USER_LOCATION}}": "Unknown",
                 "{{CURRENT_DATETIME}}": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "{{CURRENT_DATE}}": datetime.now().strftime("%Y-%m-%d"),
@@ -964,11 +973,7 @@ class ZAIProvider(BaseProvider):
                                     if delta_content:
                                         # 处理思考内容格式
                                         if delta_content.startswith("<details"):
-                                            content = (
-                                                delta_content.split("</summary>\n>")[-1].strip()
-                                                if "</summary>\n>" in delta_content
-                                                else delta_content
-                                            )
+                                            content = delta_content.split('>', 1)[-1].strip()
                                         else:
                                             content = delta_content
 
@@ -983,26 +988,42 @@ class ZAIProvider(BaseProvider):
                                         yield await self.format_sse_chunk(thinking_chunk)
 
                                 # 处理 MCP 工具调用结果（如图片处理等）
-                                elif phase == "other":
+                                elif phase == "other" or phase == "tool_call":
                                     text_content = data.get("edit_content", "")
-                                    if text_content:
-                                        import re
-                                        url_match = re.search(r'<url>(.*?)</url>', text_content)
-                                        if url_match:
-                                            actual_url = url_match.group(1)
-                                            image_markdown = f"\n\n![]({actual_url})\n"
+                                    edit_index = data.get("edit_index","")
+                                    if "</glm_block>" in chunk_str:
+                                        if text_content:
+                                            import re
+                                            url_match = re.search(r'<url>(.*?)</url>', text_content)
+                                            if url_match:
+                                                actual_url = url_match.group(1)
+                                                image_markdown = f"\n\n![]({actual_url})\n"
 
-                                            content_chunk = self.create_openai_chunk(
-                                                chat_id,
-                                                model,
-                                                {
-                                                    "role": "assistant",
-                                                    "content": image_markdown
-                                                }
-                                            )
-                                            output_data = await self.format_sse_chunk(content_chunk)
-                                            self.logger.debug(f"➡️ 输出图片内容到客户端: {output_data}")
-                                            yield output_data
+                                                content_chunk = self.create_openai_chunk(
+                                                    chat_id,
+                                                    model,
+                                                    {
+                                                        "role": "assistant",
+                                                        "content": image_markdown
+                                                    }
+                                                )
+                                                output_data = await self.format_sse_chunk(content_chunk)
+                                                self.logger.debug(f"➡️ 输出图片内容到客户端: {output_data}")
+                                                yield output_data
+                                    elif isinstance(text_content, str) and edit_index:
+                                        content_chunk = self.create_openai_chunk(
+                                            chat_id,
+                                            model,
+                                            {
+                                                "role": "assistant",
+                                                "content": text_content
+                                            }
+                                        )
+                                        output_data = await self.format_sse_chunk(content_chunk)
+                                        self.logger.debug(f"➡️ 输出other块中的内容块到客户端: {output_data}")
+                                        yield output_data
+
+
 
                                 # 处理答案内容
                                 elif phase == "answer":
@@ -1013,7 +1034,7 @@ class ZAIProvider(BaseProvider):
                                     if delta_content:
                                         buffered_content += delta_content
                                     elif edit_content:
-                                        buffered_content = edit_content
+                                        buffered_content = edit_content.split('\n</details>\n', 1)[-1]
 
                                     # 如果包含 usage,说明流式结束
                                     if data.get("usage"):
