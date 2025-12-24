@@ -156,6 +156,8 @@ class ZAIProvider(BaseProvider):
             settings.GLM46V_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态思考
             settings.GLM46V_IMAGE_SEARCH_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态图片搜索思考
             settings.GLM46V_SHOPPING_THINKING_MODEL: "glm-4.6v",  # GLM-4.6V多模态购物思考
+            settings.GLM47_MODEL: "glm-4.7",  # GLM-4.7
+            settings.GLM47_THINKING_MODEL: "glm-4.7",  # GLM-4.7-Thinking
         }
     
     def get_supported_models(self) -> List[str]:
@@ -178,6 +180,8 @@ class ZAIProvider(BaseProvider):
             settings.GLM46V_THINKING_MODEL,
             settings.GLM46V_IMAGE_SEARCH_THINKING_MODEL,
             settings.GLM46V_SHOPPING_THINKING_MODEL,
+            settings.GLM47_MODEL,
+            settings.GLM47_THINKING_MODEL,
         ]
 
     def _get_proxy_config(self) -> Optional[str]:
